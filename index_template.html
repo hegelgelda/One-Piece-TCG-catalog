@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>One Piece TCG Wholesale Catalog — Torelis</title>
+<style>
+:root{
+  --bg0:#0a0e14;--bg1:#10151d;--bg2:#161d27;--bg3:#1d2530;
+  --border:#232c39;--border2:#2e3947;
+  --text0:#eef1f5;--text1:#a8b1c0;--text2:#5f6b7d;
+  --gold:#d4a24c;--gold-dim:#8a6d38;
+  --red:#e0483e;--green:#3ea86b;--blue:#3f88c5;--purple:#a463c9;--black:#7a828f;--yellow:#e0c341;
+  --danger:#e0483e;--ok:#3ea86b;
+  --radius:8px;--radius2:12px;
+  font-family:'Helvetica Neue',Arial,'Hiragino Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg0);color:var(--text0);font-size:13px}
+button,input,select{font-family:inherit;font-size:inherit}
+
+.app{display:grid;grid-template-columns:230px 1fr 320px;height:100vh;overflow:hidden}
+
+/* ── Sidebar ── */
+.sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.brand{padding:18px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.brand-mark{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--gold);text-transform:uppercase}
+.brand-sub{font-size:10px;color:var(--text2);margin-top:3px;letter-spacing:.04em}
+.sidebar-scroll{overflow-y:auto;flex:1;padding:8px 0}
+.series-label{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;font-size:12px;font-weight:600;color:var(--text1);
+  letter-spacing:.04em;text-transform:uppercase;cursor:pointer;user-select:none;
+}
+.series-label:hover{color:var(--text0)}
+.series-label .arrow{font-size:9px;transition:transform .15s;color:var(--text2)}
+.series-label.open .arrow{transform:rotate(90deg)}
+.set-list{display:none}
+.set-list.open{display:block}
+.set-btn{
+  display:flex;align-items:baseline;gap:7px;width:100%;padding:6px 14px 6px 22px;
+  border:none;background:none;cursor:pointer;text-align:left;transition:background .12s;
+}
+.set-btn:hover{background:var(--bg2)}
+.set-btn.active{background:var(--bg3);border-left:2px solid var(--gold)}
+.set-btn .sid{font-size:10.5px;font-weight:700;color:var(--text2);min-width:44px;flex-shrink:0}
+.set-btn.active .sid{color:var(--gold)}
+.set-btn .sname{font-size:11.5px;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-btn.active .sname{color:var(--text0)}
+
+/* ── Main ── */
+.main{display:flex;flex-direction:column;overflow:hidden}
+.main-header{padding:18px 22px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.main-header h2{font-size:17px;font-weight:700}
+.main-header p{font-size:11.5px;color:var(--text2);margin-top:3px}
+.toolbar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:10px 22px;border-bottom:1px solid var(--border);flex-shrink:0}
+.search-wrap input{
+  width:280px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:6px;color:var(--text0);outline:none;
+}
+.search-wrap input:focus{border-color:var(--gold-dim)}
+.chip-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip-group .glabel{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
+.chip{
+  padding:4px 10px;border-radius:999px;border:1px solid var(--border2);background:var(--bg2);
+  color:var(--text1);font-size:11px;cursor:pointer;transition:all .12s;white-space:nowrap;
+}
+.chip:hover{border-color:var(--text2)}
+.chip.active{background:var(--gold);border-color:var(--gold);color:#1a1400;font-weight:600}
+.chip.color-chip{display:flex;align-items:center;gap:5px}
+.color-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+.card-scroll{flex:1;overflow-y:auto;padding:16px 22px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}
+.card-tile{
+  background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius2);
+  overflow:hidden;transition:border-color .12s,transform .12s;position:relative;
+}
+.card-tile:hover{border-color:var(--border2);transform:translateY(-2px)}
+.card-tile.rare .thumb{box-shadow:inset 0 0 0 1px var(--gold)}
+.thumb{aspect-ratio:5/7;background:var(--bg2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .noimg{font-size:10px;color:var(--text2)}
+.color-stripe{height:4px;width:100%}
+.card-meta{padding:8px 9px 9px}
+.card-num{font-size:9.5px;color:var(--text2);font-weight:600;letter-spacing:.03em}
+.card-name{font-size:11.5px;color:var(--text0);line-height:1.25;margin:3px 0 6px;min-height:28px}
+.badge-row{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.rarity-badge{
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.03em;
+  background:var(--bg3);color:var(--text1);
+}
+.rarity-badge.r-SEC{background:var(--gold);color:#1a1400}
+.rarity-badge.r-SR{background:#4a3a17;color:var(--gold)}
+.rarity-badge.r-L{background:#3a1414;color:#f0a89e}
+.stat-row{font-size:9.5px;color:var(--text2);margin-top:4px;display:flex;gap:8px}
+.add-btn{
+  margin-top:7px;width:100%;padding:6px;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:6px;color:var(--text0);font-size:11px;cursor:pointer;transition:all .12s;
+}
+.add-btn:hover{background:var(--gold);border-color:var(--gold);color:#1a1400;font-weight:600}
+.empty-state{color:var(--text2);font-size:13px;padding:40px;text-align:center}
+
+/* ── Cart ── */
+.cart{background:var(--bg1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.cart-header{padding:16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.cart-header h3{font-size:14px}
+.field-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:9px 0 3px;display:block}
+.buyer-input,.currency-sel{
+  width:100%;padding:7px 9px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:6px;color:var(--text0);outline:none;
+}
+.cart-items{flex:1;overflow-y:auto;padding:8px 16px}
+.cart-empty{color:var(--text2);font-size:12px;padding:30px 0;text-align:center}
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.cart-item .ci-name{font-size:11.5px}
+.cart-item .ci-sub{font-size:10px;color:var(--text2)}
+.cart-item .ci-controls{display:flex;align-items:center;gap:6px}
+.qty-btn{width:20px;height:20px;border-radius:4px;border:1px solid var(--border2);background:var(--bg2);color:var(--text0);cursor:pointer}
+.cart-footer{padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.submit-btn{width:100%;padding:11px;background:var(--gold);border:none;border-radius:8px;color:#1a1400;font-weight:700;cursor:pointer}
+.submit-btn:disabled{background:var(--bg3);color:var(--text2);cursor:not-allowed}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg1);border:1px solid var(--border2);border-radius:12px;padding:24px;max-width:360px;text-align:center}
+.modal-close{margin-top:14px;padding:9px 18px;background:var(--gold);border:none;border-radius:6px;color:#1a1400;font-weight:700;cursor:pointer}
+
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ── Sidebar ── -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">Torelis</div>
+      <div class="brand-sub">One Piece TCG — JP Wholesale</div>
+    </div>
+    <div class="sidebar-scroll" id="sidebar-sets"></div>
+  </div>
+
+  <!-- ── Main ── -->
+  <div class="main">
+    <div class="main-header">
+      <h2 id="main-title">One Piece TCG Wholesale Catalog</h2>
+      <p id="main-sub">Select a set from the sidebar, or search all __TOTAL_CARDS__ cards across __TOTAL_SETS__ sets.</p>
+    </div>
+    <div class="toolbar">
+      <div class="search-wrap">
+        <input type="text" id="search" placeholder="🔍  Search cards — name or card number…" oninput="onSearch()">
+      </div>
+      <div class="chip-group" id="color-filters"></div>
+      <div class="chip-group" id="type-filters"></div>
+      <div class="chip-group" id="rarity-filters"></div>
+    </div>
+    <div class="card-scroll">
+      <div id="content"><div class="empty-state">Choose a set from the sidebar, or use search above.</div></div>
+    </div>
+  </div>
+
+  <!-- ── Order Panel ── -->
+  <div class="cart">
+    <div class="cart-header">
+      <h3>Order <span id="cart-count" style="font-size:11px;color:var(--text2);font-weight:400"></span></h3>
+      <label class="field-label">Buyer name</label>
+      <input class="buyer-input" id="buyer-name" placeholder="Name">
+      <label class="field-label">Company</label>
+      <input class="buyer-input" id="buyer-company" placeholder="Shop / Company">
+      <label class="field-label">Email</label>
+      <input class="buyer-input" id="buyer-email" type="email" placeholder="email@example.com">
+      <label class="field-label">Currency</label>
+      <select class="currency-sel" id="currency" onchange="renderCart()">
+        <option value="USD">USD</option>
+        <option value="JPY">JPY</option>
+        <option value="SGD">SGD</option>
+        <option value="HKD">HKD</option>
+        <option value="PHP">PHP</option>
+      </select>
+    </div>
+    <div class="cart-items" id="cart-items"><div class="cart-empty">No items yet.</div></div>
+    <div class="cart-footer">
+      <div id="cart-summary"></div>
+      <button class="submit-btn" id="submit-btn" onclick="submitOrder()" disabled>Submit Order</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modal-title">✓ Order Submitted</h2>
+    <p id="modal-body">Your order has been received. We will contact you shortly.</p>
+    <button class="modal-close" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+// ── Data (generated by build/build_optcg.py — do not hand-edit) ──
+const SERIES        = __SERIES_JSON__;
+const CARDS         = __CARDS_JSON__;
+const RARITY_ORDER  = __RARITY_ORDER_JSON__;
+
+// ── Config (edit freely — not overwritten by the build script) ──
+const FX      = {"USD": 1, "JPY": 153, "SGD": 1.35, "HKD": 7.82, "PHP": 57};
+const DP      = {"C": 0.3, "UC": 0.5, "R": 1.5, "SR": 6, "SEC": 25, "L": 1, "TR": 3, "P": 2, "SP CARD": 15};
+// TODO: set this to your Google Apps Script Web App URL to pull live prices / submit orders.
+const GAS_URL = "YOUR_GAS_WEBAPP_URL_HERE";
+
+const COLOR_HEX = {Red:"var(--red)",Green:"var(--green)",Blue:"var(--blue)",Purple:"var(--purple)",Black:"var(--black)",Yellow:"var(--yellow)"};
+const BASE_COLORS = ["Red","Green","Blue","Purple","Black","Yellow"];
+const TYPES = ["LEADER","CHARACTER","EVENT","STAGE"];
+
+let currentSet = null, cart = {}, searchQ = '';
+let activeColors = new Set(), activeTypes = new Set(), activeRarities = new Set();
+let cardPrices = {};
+let pricesLoaded = false;
+
+async function loadPrices(){
+  if(GAS_URL === 'YOUR_GAS_WEBAPP_URL_HERE') return;
+  try{
+    const r = await fetch(GAS_URL, {mode:'cors', redirect:'follow'});
+    const d = await r.json();
+    cardPrices = d || {};
+  }catch(e){ /* silently fall back to DP defaults */ }
+  pricesLoaded = true;
+  if(currentSet) renderCards();
+  if(searchQ) renderSearch();
+}
+loadPrices();
+
+function getSym(){
+  return {USD:'$',JPY:'¥',SGD:'S$',HKD:'HK$',PHP:'₱'}[document.getElementById('currency').value] || '$';
+}
+function conv(usd){
+  const cur = document.getElementById('currency').value;
+  const v = usd * (FX[cur]||1);
+  return cur === 'JPY' ? Math.round(v) : v.toFixed(2);
+}
+function getPrice(key, rarity){
+  if(cardPrices[key] !== undefined) return cardPrices[key];
+  return DP[rarity] !== undefined ? DP[rarity] : 1;
+}
+
+// ── Sidebar ──
+function renderSidebar(){
+  const inner = SERIES.map(s=>`
+    <div class="category-block">
+      <div class="series-label" onclick="toggleSeries('${s.key}')" id="grp-${cssId(s.key)}">
+        <span>${s.key}</span><span class="arrow">▶</span>
+      </div>
+      <div class="set-list" id="list-${cssId(s.key)}">
+        ${s.sets.map(st=>`
+          <button class="set-btn" id="setbtn-${st.id}" onclick="selectSet('${st.id}')" title="${escapeHtml(st.name_en||'')}">
+            <span class="sid">${st.id}</span><span class="sname">${escapeHtml(st.name)}</span>
+          </button>`).join('')}
+      </div>
+    </div>`).join('');
+  document.getElementById('sidebar-sets').innerHTML = inner;
+  // 最初のシリーズを開いておく
+  const first = SERIES[0];
+  if(first) toggleSeries(first.key, true);
+}
+function cssId(s){ return s.replace(/[^a-zA-Z0-9]/g,'_'); }
+function toggleSeries(key, forceOpen){
+  const lbl = document.getElementById('grp-'+cssId(key));
+  const lst = document.getElementById('list-'+cssId(key));
+  const open = lst.classList.contains('open');
+  if(forceOpen || !open){ lbl.classList.add('open'); lst.classList.add('open'); }
+  else { lbl.classList.remove('open'); lst.classList.remove('open'); }
+}
+
+function findSetMeta(id){
+  for(const s of SERIES) for(const st of s.sets) if(st.id===id) return st;
+  return {name:id, count:0, rarities:[], colors:[], types:[]};
+}
+
+function selectSet(id){
+  currentSet = id; searchQ=''; document.getElementById('search').value='';
+  activeRarities = new Set();
+  document.querySelectorAll('.set-btn').forEach(b=>b.classList.remove('active'));
+  const btn = document.getElementById('setbtn-'+id);
+  if(btn) btn.classList.add('active');
+  const meta = findSetMeta(id);
+  document.getElementById('main-title').textContent = `${id} — ${meta.name}`;
+  document.getElementById('main-sub').textContent =
+    `${meta.count} cards in this set.` + (meta.name_en ? `  (${meta.name_en})` : '');
+  renderFilters(meta);
+  renderCards();
+}
+
+// ── Filters (color / type / rarity) ──
+function renderFilters(meta){
+  const colors = meta.colors && meta.colors.length ? meta.colors : BASE_COLORS;
+  const usedColors = new Set();
+  colors.forEach(c => c.split('/').forEach(x=>usedColors.add(x)));
+  document.getElementById('color-filters').innerHTML =
+    `<span class="glabel">Color</span>` +
+    [...usedColors].sort().map(c=>`
+      <span class="chip color-chip" data-color="${c}" onclick="toggleFilter('color','${c}')">
+        <span class="color-dot" style="background:${COLOR_HEX[c]||'#888'}"></span>${c}
+      </span>`).join('');
+
+  const types = meta.types && meta.types.length ? meta.types : TYPES;
+  document.getElementById('type-filters').innerHTML =
+    `<span class="glabel">Type</span>` +
+    types.map(t=>`<span class="chip" data-type="${t}" onclick="toggleFilter('type','${t}')">${t}</span>`).join('');
+
+  const rarities = meta.rarities && meta.rarities.length ? meta.rarities : RARITY_ORDER;
+  document.getElementById('rarity-filters').innerHTML =
+    `<span class="glabel">Rarity</span>` +
+    rarities.map(r=>`<span class="chip" data-rarity="${r}" onclick="toggleFilter('rarity','${r}')">${r}</span>`).join('');
+}
+function toggleFilter(kind, val){
+  const set = kind==='color'?activeColors:kind==='type'?activeTypes:activeRarities;
+  if(set.has(val)) set.delete(val); else set.add(val);
+  document.querySelectorAll(`.chip[data-${kind}="${val}"]`).forEach(el=>el.classList.toggle('active'));
+  if(currentSet) renderCards(); else if(searchQ) renderSearch();
+}
+function passesFilters(c){
+  if(activeColors.size && !(c.c||'').split('/').some(x=>activeColors.has(x))) return false;
+  if(activeTypes.size && !activeTypes.has(c.t)) return false;
+  if(activeRarities.size && !activeRarities.has(c.r)) return false;
+  return true;
+}
+
+// ── Card grid ──
+function cardTile(c, setId){
+  const key = `${setId}-${c.n}`;
+  const price = getPrice(key, c.r);
+  const loading = !pricesLoaded && GAS_URL !== 'YOUR_GAS_WEBAPP_URL_HERE';
+  const tagText = loading ? '…' : `${getSym()}${conv(price)}`;
+  const rClass = 'r-' + String(c.r||'').replace(/\s+/g,'-');
+  const colorStripe = (c.c||'').split('/')[0];
+  const isRare = ['SR','SEC','L'].includes(c.r);
+  return `
+    <div class="card-tile ${isRare?'rare':''}">
+      <div class="color-stripe" style="background:${COLOR_HEX[colorStripe]||'var(--border2)'}"></div>
+      <div class="thumb">
+        ${c.img ? `<img src="${c.img}" loading="lazy" alt="${escapeHtml(c.name)}">` : `<span class="noimg">No Image</span>`}
+      </div>
+      <div class="card-meta">
+        <div class="card-num">${setId}-${c.n}${c.p?' ★':''}</div>
+        <div class="card-name">${escapeHtml(c.name)}</div>
+        <div class="badge-row">
+          <span class="rarity-badge ${rClass}">${c.r||'—'}</span>
+          <span class="stat-row">${c.cost!=null?`⚡${c.cost}`:''} ${c.power!=null?`⚔${c.power}`:''}</span>
+        </div>
+        <div class="price-line" style="margin-top:6px;font-size:12px;color:var(--gold);font-weight:600">${tagText}</div>
+        <button class="add-btn" onclick="addToCart('${key}', ${JSON.stringify(c.name)}, '${setId}-${c.n}', '${c.r}', ${price})">Add</button>
+      </div>
+    </div>`;
+}
+
+function renderCards(){
+  if(!currentSet) return;
+  const rf = activeRarities;
+  const cards = (CARDS[currentSet]||[]).filter(passesFilters);
+  if(!cards.length){
+    document.getElementById('content').innerHTML = '<div class="empty-state">No cards match the current filters.</div>';
+    return;
+  }
+  document.getElementById('content').innerHTML =
+    `<div class="card-grid">${cards.map(c=>cardTile(c, currentSet)).join('')}</div>`;
+}
+
+function onSearch(){
+  searchQ = document.getElementById('search').value.trim().toLowerCase();
+  currentSet = null;
+  document.querySelectorAll('.set-btn').forEach(b=>b.classList.remove('active'));
+  if(!searchQ){
+    document.getElementById('main-title').textContent = 'One Piece TCG Wholesale Catalog';
+    document.getElementById('main-sub').textContent = `Select a set from the sidebar, or search all __TOTAL_CARDS__ cards across __TOTAL_SETS__ sets.`;
+    document.getElementById('content').innerHTML = '<div class="empty-state">Choose a set from the sidebar, or use search above.</div>';
+    renderFilters({});
+    return;
+  }
+  renderFilters({});
+  renderSearch();
+}
+function renderSearch(){
+  const q = searchQ;
+  const results = [];
+  for(const [setId, cards] of Object.entries(CARDS)){
+    for(const c of cards){
+      if(!passesFilters(c)) continue;
+      if(c.name.toLowerCase().includes(q) || `${setId}-${c.n}`.toLowerCase().includes(q)){
+        results.push({...c, setId});
+      }
+    }
+  }
+  document.getElementById('main-title').textContent = `Search: "${searchQ}"`;
+  document.getElementById('main-sub').textContent = `${results.length} matching cards.`;
+  const shown = results.slice(0, 200);
+  document.getElementById('content').innerHTML = shown.length
+    ? `<div class="card-grid">${shown.map(c=>cardTile(c, c.setId)).join('')}</div>`
+    : '<div class="empty-state">No matching cards.</div>';
+}
+
+// ── Cart ──
+function addToCart(key, name, num, rarity, price){
+  if(!cart[key]) cart[key] = {name, num, rarity, price, qty:0};
+  cart[key].qty++;
+  renderCart();
+}
+function changeQty(key, delta){
+  if(!cart[key]) return;
+  cart[key].qty += delta;
+  if(cart[key].qty <= 0) delete cart[key];
+  renderCart();
+}
+function renderCart(){
+  const keys = Object.keys(cart);
+  const count = keys.reduce((s,k)=>s+cart[k].qty,0);
+  document.getElementById('cart-count').textContent = count ? `(${count})` : '';
+  const sym = getSym();
+  if(!keys.length){
+    document.getElementById('cart-items').innerHTML = '<div class="cart-empty">No items yet.</div>';
+    document.getElementById('cart-summary').innerHTML = '';
+    document.getElementById('submit-btn').disabled = true;
+    return;
+  }
+  document.getElementById('cart-items').innerHTML = keys.map(k=>{
+    const it = cart[k];
+    return `<div class="cart-item">
+      <div>
+        <div class="ci-name">${escapeHtml(it.name)}</div>
+        <div class="ci-sub">${it.num} · ${it.rarity} · ${sym}${conv(it.price)} each</div>
+      </div>
+      <div class="ci-controls">
+        <button class="qty-btn" onclick="changeQty('${k}',-1)">−</button>
+        <span>${it.qty}</span>
+        <button class="qty-btn" onclick="changeQty('${k}',1)">+</button>
+      </div>
+    </div>`;
+  }).join('');
+  const sub = keys.reduce((s,k)=>s+cart[k].price*cart[k].qty, 0);
+  document.getElementById('cart-summary').innerHTML =
+    `<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:8px">
+       <span>Subtotal</span><span>${sym}${conv(sub)}</span></div>`;
+  document.getElementById('submit-btn').disabled = false;
+}
+
+async function submitOrder(){
+  const buyer   = document.getElementById('buyer-name').value.trim();
+  const company = document.getElementById('buyer-company').value.trim();
+  const email   = document.getElementById('buyer-email').value.trim();
+  const cur     = document.getElementById('currency').value;
+  const keys    = Object.keys(cart);
+  if(!buyer || !email || !keys.length){
+    alert('Please fill in your name, email, and add at least one card.');
+    return;
+  }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  const totalUSD = keys.reduce((s,k)=>s+cart[k].price*cart[k].qty, 0);
+  const items = keys.map(k=>({
+    key:k, name:cart[k].name, num:cart[k].num, rarity:cart[k].rarity,
+    qty:cart[k].qty, priceUSD:cart[k].price
+  }));
+  const payload = { buyer, company, email, currency: cur, totalUSD: +totalUSD.toFixed(2), items };
+  try{
+    if(GAS_URL !== 'YOUR_GAS_WEBAPP_URL_HERE'){
+      await fetch(GAS_URL, {
+        method:'POST', mode:'cors',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify(payload)
+      });
+    }
+    document.getElementById('modal-title').textContent = '✓ Order Submitted';
+    document.getElementById('modal-body').textContent = 'Your order has been received. We will contact you shortly.';
+    document.getElementById('modal').classList.add('open');
+    cart = {}; renderCart();
+  }catch(e){
+    alert('Something went wrong submitting your order. Please try again or contact us directly.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Submit Order';
+  }
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+renderSidebar();
+renderCart();
+</script>
+</body>
+</html>
