@@ -131,6 +131,969 @@ button,input,select{font-family:inherit;font-size:inherit}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
 </style>
 </head>
+  <!-- ============================================================= -->
+<!--  編集モード（買取バナージェネレーター）— One Piece TCG カタログ用       -->
+<!--  使い方: One Piece版 index.html の  </body>  の直前にこのブロックを   -->
+<!--         まるごと貼り付け、URL の末尾に  ?admin=1  を付けて開く。       -->
+<!--  例: https://hegelgelda.github.io/One-Piece-TCG-catalog/?admin=1     -->
+<!--  依存: このカタログ内の CARDS（カードDB）と imgUrl（画像URL）。         -->
+<!--       どちらも同じ build.py テンプレートで既に定義済みなのでそのまま動作。 -->
+<!-- ============================================================= -->
+
+<!-- html2canvas（PNG書き出し用） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<button id="tak-reopen-btn" onclick="openTakatori()" style="display:none;position:fixed;bottom:20px;right:20px;z-index:150;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px 18px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.35)">✎ 編集モードに戻る</button>
+
+<div id="takatori-overlay" style="display:none;position:fixed;inset:0;background:var(--bg0);z-index:200;overflow-y:auto;padding:24px">
+
+  <!-- ホバー拡大プレビュー -->
+  <div id="tak-zoom" style="display:none;position:fixed;left:0;top:0;z-index:9999;pointer-events:none;padding:4px;background:var(--bg1);border:1px solid var(--border2);border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5)">
+    <img src="" alt="" style="display:block;width:220px;height:auto;border-radius:5px">
+  </div>
+
+  <div style="max-width:1200px;margin:0 auto">
+
+    <!-- ヘッダー -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text2);text-transform:uppercase;margin-bottom:4px">管理者モード</div>
+        <h2 style="font-size:18px;font-weight:600;color:var(--text0)">買取バナージェネレーター</h2>
+      </div>
+      <button onclick="closeTakatori()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text1);padding:8px 16px;cursor:pointer;font-size:13px">← カタログに戻る</button>
+    </div>
+
+    <!-- 縦一列レイアウト（各セクションが画面幅いっぱい） -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- カードスロット -->
+      <div style="background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text2);text-transform:uppercase;margin-bottom:12px">カードスロット（最大20枚）</div>
+
+        <!-- 検索 -->
+        <input type="text" id="tak-search" placeholder="カード名で検索..." oninput="takSearchCards()"
+          style="width:100%;padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none;margin-bottom:10px">
+        <div id="tak-search-results" style="max-height:60vh;overflow-y:auto;margin-bottom:14px;display:none;background:var(--bg2);border:1px solid var(--border);border-radius:6px"></div>
+
+        <!-- 追加ボタン + 一覧見出し -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text2);text-transform:uppercase">登録済みカード</div>
+          <div style="display:flex;gap:6px">
+            <input type="file" id="tak-card-file" accept="image/*" style="display:none" onchange="takCardImageUpload(event)">
+            <button onclick="document.getElementById('tak-card-file').click()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer">画像から追加</button>
+            <button onclick="takAddSlot()" style="background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer">＋ 追加</button>
+          </div>
+        </div>
+
+        <!-- スロット一覧 -->
+        <div id="tak-slot-list" style="display:flex;flex-direction:column;gap:6px"></div>
+
+        <!-- 選択スロット編集 -->
+        <div id="tak-edit-form" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text2);text-transform:uppercase;margin-bottom:10px">スロット <span id="tak-slot-label"></span> を編集</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:3px">カード名</div>
+          <input id="tak-f-name" type="text" placeholder="例: モンキー・D・ルフィ SEC"
+            style="width:100%;padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none;margin-bottom:8px">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:3px">買取価格（円）</div>
+          <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+            <span style="padding:7px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;font-weight:600">¥</span>
+            <input id="tak-f-amount" type="number" placeholder="3500"
+              style="flex:1;padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none">
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:3px">レアリティ（買取リストの分類に使用）</div>
+          <select id="tak-f-rarity"
+            style="width:100%;padding:7px 10px;margin-bottom:10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none;-webkit-appearance:none"></select>
+          <div style="display:flex;gap:6px">
+            <button onclick="takSaveSlot()" style="flex:1;padding:8px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">保存</button>
+            <button onclick="takDeleteSlot(takActive)" style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer">削除</button>
+          </div>
+        </div>
+
+        <!-- 保存セット（カード構成の保存・読込） -->
+        <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text2);text-transform:uppercase">保存セット（カード一覧）</div>
+            <button onclick="takSaveSet()" style="background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer">現在の一覧を保存</button>
+          </div>
+          <div style="display:flex;gap:6px">
+            <select id="tak-set-select" style="flex:1;padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none;-webkit-appearance:none"></select>
+            <button onclick="takLoadSet()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;font-weight:600;cursor:pointer">読込</button>
+            <button onclick="takDeleteSet()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer">削除</button>
+          </div>
+          <div style="font-size:10px;color:var(--text2);margin-top:6px">※ カード構成（名前・画像・レアリティ・価格）を保存します。後日読み込んで、価格だけ変更して出力できます。</div>
+        </div>
+
+        <!-- 登録済み一覧（レアリティ別・コピー用） -->
+        <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text2);text-transform:uppercase">買取リスト（編集可）</div>
+            <div style="display:flex;gap:6px">
+              <button onclick="takBuildList(true)" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer">再生成</button>
+              <button id="tak-copy-btn" onclick="takCopyList()" style="background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer">コピー</button>
+            </div>
+          </div>
+          <textarea id="tak-list-text" rows="8" oninput="takListEdited=true" placeholder="カードを登録すると、ここに一覧が表示されます。自由に編集できます。" style="width:100%;padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none;resize:vertical;font-family:'Courier New',monospace;white-space:pre;line-height:1.6"></textarea>
+          <div style="font-size:10px;color:var(--text2);margin-top:6px">※ 手入力で編集できます。カードを追加・変更しても手動編集は保持され、「再生成」でカード情報から作り直します。</div>
+        </div>
+      </div>
+
+      <!-- バナー設定 -->
+        <div style="background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text2);text-transform:uppercase;margin-bottom:10px">バナー設定</div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:3px">タイトル</div>
+            <input id="tak-title" type="text" value="トレカ高価買取" oninput="takUpdateTitle()"
+              style="width:100%;padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none">
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:3px">日付（左上に「◯/◯ 時点」と表示・空欄で非表示）</div>
+            <input id="tak-date" type="date" oninput="takUpdateDate()"
+              style="width:100%;padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:3px">サブテキスト</div>
+              <input id="tak-sub" type="text" value="Torelis"
+                style="width:100%;padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none">
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:3px">フッター</div>
+              <input id="tak-footer" type="text" value="買取価格はカードの状態・在庫数・相場の変動によって変更する場合があります。予めご了承ください。"
+                style="width:100%;padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none">
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:3px">注釈（枠外キャプション・改行可）</div>
+            <textarea id="tak-caption" rows="2" placeholder="例: 表示価格は2025/1時点。状態により変動します。"
+              oninput="takRenderBanner()"
+              style="width:100%;padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none;resize:vertical;font-family:inherit"></textarea>
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:6px">背景色（30色）</div>
+            <div id="tak-bg-swatches" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:6px">背景画像</div>
+            <input type="file" id="tak-bg-file" accept="image/*" style="display:none" onchange="takBgUpload(event)">
+            <div style="display:flex;gap:6px">
+              <button onclick="document.getElementById('tak-bg-file').click()" style="flex:1;padding:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;font-weight:600;cursor:pointer">画像をアップロード</button>
+              <button onclick="takClearBgImage()" style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer">外す</button>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:6px">ロゴ（右上に表示）</div>
+            <input type="file" id="tak-logo-file" accept="image/*" style="display:none" onchange="takLogoUpload(event)">
+            <div style="display:flex;gap:6px">
+              <button onclick="document.getElementById('tak-logo-file').click()" style="flex:1;padding:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;font-weight:600;cursor:pointer">ロゴをアップロード</button>
+              <button onclick="takClearLogo()" style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer">外す</button>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:3px">フォント（タイトル・サブ・フッター）</div>
+            <select id="tak-font" onchange="takSetFont(this.value)"
+              style="width:100%;padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none;-webkit-appearance:none"></select>
+          </div>
+          <button onclick="takRenderBanner()" style="margin-top:12px;width:100%;padding:10px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">バナーを生成</button>
+        </div>
+
+        <!-- バナープレビュー -->
+        <div style="background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:16px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text2);text-transform:uppercase;margin-bottom:12px">出力プレビュー</div>
+          <div id="tak-banner-output" style="position:relative;background:#f7f7f5;border-radius:10px;padding:20px 22px 22px;font-family:'Helvetica Neue',Arial,'Noto Sans JP',sans-serif">
+            <div id="tak-out-date" style="position:absolute;top:10px;left:12px;font-size:28px;font-weight:700;padding:8px 20px;border:2px solid #000;border-radius:8px;background:rgba(0,0,0,0.03);color:#565b6e">7/8 時点</div>
+            <img id="tak-out-logo" alt="" style="display:none;position:absolute;top:10px;right:12px;max-height:64px;max-width:160px;width:auto;height:auto;object-fit:contain">
+            <div id="tak-out-title" style="text-align:center;font-size:22px;font-weight:700;color:#a67c00;letter-spacing:.1em;margin-bottom:4px">トレカ高価買取</div>
+            <div id="tak-out-sub" style="text-align:center;font-size:11px;color:#5a6072;margin-bottom:16px;letter-spacing:.05em">Torelis</div>
+            <div id="tak-banner-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
+            <div id="tak-out-caption" style="display:none;margin-top:14px;padding:8px 12px;border:1px solid rgba(0,0,0,0.12);border-radius:8px;background:rgba(0,0,0,0.03);font-size:10px;line-height:1.5;color:#565b6e;white-space:pre-wrap;text-align:center"></div>
+            <div id="tak-out-footer" style="margin-top:14px;text-align:center;font-size:10px;color:#565b6e;letter-spacing:.05em">買取価格はカードの状態・在庫数・相場の変動によって変更する場合があります。予めご了承ください。</div>
+          </div>
+          <button onclick="takDownload()" style="margin-top:12px;width:100%;padding:10px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">画像をダウンロード（PNG）</button>
+          <div style="margin-top:8px;font-size:11px;color:var(--text2)">比率を指定して書き出し</div>
+          <div style="margin-top:6px;display:flex;gap:6px">
+            <button onclick="takDownloadRatio(9,16,'9x16')" style="flex:1;padding:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;font-weight:600;cursor:pointer">9:16（縦長）</button>
+            <button onclick="takDownloadRatio(4,5,'4x5')" style="flex:1;padding:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;font-weight:600;cursor:pointer">4:5（縦）</button>
+            <button onclick="takDownloadRatio(16,9,'16x9')" style="flex:1;padding:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;font-weight:600;cursor:pointer">16:9（横長）</button>
+          </div>
+          <div id="tak-ratio" style="margin-top:8px;font-size:11px;color:var(--text2);text-align:center"></div>
+        </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Admin: 買取バナージェネレーター（One Piece版） ──
+// ホスト側カタログ（One Piece版）の imgUrl をそのまま利用。無い場合は空文字で画像だけ非表示。
+function takImgUrl(setId, n){ try { return (typeof imgUrl === 'function') ? imgUrl(setId, n) : ''; } catch(e){ return ''; } }
+const TAK_SLOTS = 20;
+let takSlots = [];  // カードを追加した分だけ枠が増える（空き枠は持たない）
+let takActive = null;
+
+// 出力背景色パレット（30色）— 白〜黒をフルレンジで網羅（グレースケール＋各色相の明中暗）
+const TAK_BG_COLORS = [
+  '#ffffff','#eaeaea','#cfcfcf','#9e9e9e','#6d6d6d','#454545','#262626','#000000', // グレースケール白→黒
+  '#dbe7f5','#6f9fd8','#2f5c9e','#12233f',   // ブルー（明→暗）
+  '#d8f0ef','#4bb3ac','#0e4a4a',             // ティール
+  '#dcefd9','#5aa85a','#14432c',             // グリーン
+  '#f6e4cf','#d99b53','#5a3a1a',             // オレンジ／ブラウン
+  '#f6dcdc','#cf6a6a','#5a1e2d',             // レッド
+  '#e7dff2','#8a6fc0','#31184a',             // パープル
+  '#f6dfe9','#d07aa0','#52163f'              // ピンク
+];
+let takBg = '#ffffff';
+
+// タイトル・サブテキスト・フッター用フォント（5種）
+const TAK_FONTS = [
+  {name:'ゴシック（標準）', css:"'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Yu Gothic','Noto Sans JP',sans-serif"},
+  {name:'明朝体',          css:"'Times New Roman','Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif"},
+  {name:'丸ゴシック',      css:"'Hiragino Maru Gothic ProN','Quicksand','Rounded Mplus 1c',system-ui,sans-serif"},
+  {name:'極太ゴシック',    css:"'Arial Black',Impact,'Hiragino Kaku Gothic StdN','Yu Gothic',sans-serif"},
+  {name:'手書き風',        css:"'Comic Sans MS','Chalkboard SE','Hiragino Maru Gothic ProN',cursive"}
+];
+let takFont = TAK_FONTS[0].css;
+let takBgImage = null;  // アップロードした背景画像（data URL）
+
+// #rrggbb + アルファ → rgba()
+function takHexA(hex, a){
+  const c = hex.replace('#','');
+  const r = parseInt(c.slice(0,2),16), g = parseInt(c.slice(2,4),16), b = parseInt(c.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ── カスタムカード候補（ローカル保存） ──
+let takCustom = [];
+function takLoadCustom(){
+  try{ takCustom = JSON.parse(localStorage.getItem('tak_custom_cards') || '[]'); }
+  catch(e){ takCustom = []; }
+}
+function takSaveCustom(){
+  try{ localStorage.setItem('tak_custom_cards', JSON.stringify(takCustom)); }
+  catch(e){ alert('候補の保存に失敗しました（ブラウザの保存容量の上限に達した可能性があります）。'); }
+}
+function takRegisterCustom(card){
+  if(!card.name) return;
+  const i = takCustom.findIndex(c => c.name === card.name);
+  if(i >= 0) takCustom[i] = card; else takCustom.push(card);
+  takSaveCustom();
+}
+function takRemoveCustom(ci){
+  takCustom.splice(ci, 1);
+  takSaveCustom();
+  takSearchCards();  // 候補リストを再描画
+}
+
+// ── 保存セット（カード構成の保存・読込） ──
+let takSets = [];
+function takLoadSets(){
+  try{ takSets = JSON.parse(localStorage.getItem('tak_saved_sets') || '[]'); }
+  catch(e){ takSets = []; }
+}
+function takPersistSets(){
+  try{ localStorage.setItem('tak_saved_sets', JSON.stringify(takSets)); return true; }
+  catch(e){ alert('保存に失敗しました（ブラウザの保存容量の上限に達した可能性があります）。画像付きのセットが多いと起こりやすいです。'); return false; }
+}
+function takRenderSets(){
+  const sel = document.getElementById('tak-set-select');
+  if(!sel) return;
+  if(!takSets.length){
+    sel.innerHTML = `<option value="">（保存セットなし）</option>`;
+    return;
+  }
+  sel.innerHTML = takSets.map((s,i) => `<option value="${i}">${s.name}（${(s.slots||[]).length}枚）</option>`).join('');
+}
+function takSaveSet(){
+  const filled = takSlots.filter(s => s.name || s.amount);
+  if(!filled.length){ alert('保存するカードがありません。'); return; }
+  const now = new Date();
+  const def = `${now.getMonth()+1}/${now.getDate()} セット`;
+  const name = (prompt('保存名を入力してください', def) || '').trim();
+  if(!name) return;
+  const snapshot = JSON.parse(JSON.stringify(takSlots));  // 画像・レアリティ・価格ごと保存
+  const i = takSets.findIndex(s => s.name === name);
+  if(i >= 0){
+    if(!confirm(`「${name}」は既にあります。上書きしますか？`)) return;
+    takSets[i] = {name, savedAt: now.toISOString(), slots: snapshot};
+  } else {
+    takSets.push({name, savedAt: now.toISOString(), slots: snapshot});
+  }
+  if(takPersistSets()){ takRenderSets(); alert(`「${name}」を保存しました。`); }
+}
+function takLoadSet(){
+  const sel = document.getElementById('tak-set-select');
+  if(!sel || sel.value === ''){ alert('読み込むセットを選んでください。'); return; }
+  const set = takSets[parseInt(sel.value,10)];
+  if(!set){ return; }
+  if(takSlots.some(s => s.name || s.amount)){
+    if(!confirm('現在の一覧を、選んだセットで置き換えます。よろしいですか？')) return;
+  }
+  takSlots = JSON.parse(JSON.stringify(set.slots || []));
+  takActive = null;
+  const ef = document.getElementById('tak-edit-form');
+  if(ef) ef.style.display = 'none';
+  takListEdited = false;
+  takRenderSlots();
+  takBuildList(true);
+  takRenderBanner();
+}
+function takDeleteSet(){
+  const sel = document.getElementById('tak-set-select');
+  if(!sel || sel.value === ''){ alert('削除するセットを選んでください。'); return; }
+  const i = parseInt(sel.value,10);
+  const set = takSets[i];
+  if(!set) return;
+  if(!confirm(`「${set.name}」を削除しますか？`)) return;
+  takSets.splice(i, 1);
+  takPersistSets();
+  takRenderSets();
+}
+
+// 画像を縮小して data URL 化（保存容量と表示負荷を抑える）
+function takScaleImage(file, maxDim){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const cw = Math.round(img.width * scale), ch = Math.round(img.height * scale);
+        const c = document.createElement('canvas');
+        c.width = cw; c.height = ch;
+        c.getContext('2d').drawImage(img, 0, 0, cw, ch);
+        resolve(c.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// 背景色の明るさを判定して文字色を自動で切り替える
+function takLum(hex){
+  const c = hex.replace('#','');
+  const r=parseInt(c.slice(0,2),16)/255, g=parseInt(c.slice(2,4),16)/255, b=parseInt(c.slice(4,6),16)/255;
+  const f=x=> x<=0.03928 ? x/12.92 : Math.pow((x+0.055)/1.055,2.4);
+  return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b);
+}
+
+function takApplyTheme(){
+  const out = document.getElementById('tak-banner-output');
+  if(!out) return;
+  out.style.background = takBg;
+  // 背景画像があれば、選択色で薄くトーン付けして重ねる（文字の可読性を保つ）
+  if(takBgImage){
+    const tint = takHexA(takBg, 0.4);
+    out.style.backgroundImage = `linear-gradient(${tint},${tint}), url("${takBgImage}")`;
+    out.style.backgroundSize = 'cover';
+    out.style.backgroundPosition = 'center';
+    out.style.backgroundRepeat = 'no-repeat';
+  } else {
+    out.style.backgroundImage = 'none';
+  }
+  const light = takLum(takBg) > 0.45;
+  const title = document.getElementById('tak-out-title');
+  const sub   = document.getElementById('tak-out-sub');
+  const foot  = document.getElementById('tak-out-footer');
+  const cap   = document.getElementById('tak-out-caption');
+  const date  = document.getElementById('tak-out-date');
+  if(light){
+    if(title) title.style.color = '#a67c00';
+    if(sub)   sub.style.color   = '#5a6072';
+    if(foot)  foot.style.color  = '#565b6e';
+    if(cap){ cap.style.color='#565b6e'; cap.style.borderColor='rgba(0,0,0,0.12)'; cap.style.background='rgba(0,0,0,0.03)'; }
+    if(date){ date.style.color='#565b6e'; date.style.borderColor='#000'; date.style.background='rgba(0,0,0,0.03)'; }
+  } else {
+    if(title) title.style.color = '#FFD700';
+    if(sub)   sub.style.color   = '#c3c8dd';
+    if(foot)  foot.style.color  = '#aab0cc';
+    if(cap){ cap.style.color='#cdd2e4'; cap.style.borderColor='rgba(255,255,255,0.18)'; cap.style.background='rgba(255,255,255,0.05)'; }
+    if(date){ date.style.color='#cdd2e4'; date.style.borderColor='#000'; date.style.background='rgba(255,255,255,0.06)'; }
+  }
+}
+
+function takApplyFont(){
+  ['tak-out-title','tak-out-sub','tak-out-footer','tak-out-caption'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.fontFamily = takFont;
+  });
+}
+
+function takUpdateTitle(){
+  const t = document.getElementById('tak-out-title');
+  const v = document.getElementById('tak-title');
+  if(t && v) t.textContent = v.value || '';
+}
+
+function takUpdateDate(){
+  const el = document.getElementById('tak-out-date');
+  const inp = document.getElementById('tak-date');
+  if(!el || !inp) return;
+  const v = inp.value;  // YYYY-MM-DD
+  if(!v){ el.style.display = 'none'; return; }
+  const p = v.split('-');
+  el.textContent = `${parseInt(p[1],10)}/${parseInt(p[2],10)} 時点`;
+  el.style.display = 'inline-block';
+}
+
+function takInitDate(){
+  const inp = document.getElementById('tak-date');
+  if(inp && !inp.value){
+    const n = new Date();
+    inp.value = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+  }
+  takUpdateDate();
+}
+
+function takRenderFonts(){
+  const sel = document.getElementById('tak-font');
+  if(!sel) return;
+  sel.innerHTML = TAK_FONTS.map((f,i)=>`<option value="${i}">${f.name}</option>`).join('');
+}
+
+function takSetFont(idx){
+  takFont = TAK_FONTS[idx].css;
+  takApplyFont();
+}
+
+// 出力の縦横比を表示
+function takUpdateRatio(){
+  const out = document.getElementById('tak-banner-output');
+  const lab = document.getElementById('tak-ratio');
+  if(!out || !lab) return;
+  const w = Math.round(out.offsetWidth), h = Math.round(out.offsetHeight);
+  if(!w || !h){ lab.textContent = ''; return; }
+  const gcd = (a,b)=> b ? gcd(b, a%b) : a;
+  const d = gcd(w,h) || 1;
+  lab.textContent = `出力サイズ ${w} × ${h}px ／ 縦横比 ${w/d}:${h/d}（≒ ${(w/h).toFixed(2)} : 1）　※PNGは2倍解像度で書き出し`;
+}
+
+// 書き出し時、外部CDNのカード画像をCORS対応プロキシ経由でdataURL化して差し込む
+// （プレビューは従来どおり直リンク。書き出し後に元へ戻す。データURLの自作画像はそのまま）
+function takProxy(url){
+  if(!url || url.startsWith('data:')) return url;
+  return 'https://images.weserv.nl/?url=' + encodeURIComponent(url) + '&output=png';
+}
+// 取得済み画像のキャッシュ（同一URLは1度だけ取得、次回以降は即時）
+const takImgCache = {};
+function takUrlToDataURL(url){
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 15000);
+  return fetch(url, {mode:'cors', signal:ctrl.signal})
+    .then(r => { if(!r.ok) throw new Error('http ' + r.status); return r.blob(); })
+    .then(blob => new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result);
+      fr.onerror = rej;
+      fr.readAsDataURL(blob);
+    }))
+    .finally(() => clearTimeout(t));
+}
+// バナー内のカード画像を一時的にdataURLへ差し替え（重複URLは1回だけ取得）
+async function takPrepareImages(){
+  const imgs = [...document.querySelectorAll('#tak-banner-output img')];
+  const restore = [];
+  const uniques = [...new Set(imgs.map(i => i.getAttribute('src') || '').filter(s => s && !s.startsWith('data:')))];
+  await Promise.all(uniques.map(async orig => {
+    if(takImgCache[orig]) return;
+    try{ takImgCache[orig] = await takUrlToDataURL(takProxy(orig)); }
+    catch(e){ /* 取得失敗はスキップ（その画像だけ空白の可能性） */ }
+  }));
+  await Promise.all(imgs.map(img => {
+    const orig = img.getAttribute('src') || '';
+    if(!orig || orig.startsWith('data:')) return Promise.resolve();
+    const dataUrl = takImgCache[orig];
+    if(!dataUrl) return Promise.resolve();
+    restore.push([img, orig]);
+    return new Promise(res => { img.onload = img.onerror = () => res(); img.setAttribute('src', dataUrl); });
+  }));
+  return restore;
+}
+function takRestoreImages(restore){
+  restore.forEach(([img, orig]) => img.setAttribute('src', orig));
+}
+
+// ── 買取リスト（カード名＋金額をレアリティ別にテキスト化） ──
+// 日本語レアリティの選択肢
+const TAK_RARITIES = [
+  {v:'',    label:'（未分類）'},
+  {v:'L',   label:'L（リーダー）'},
+  {v:'C',   label:'C（コモン）'},
+  {v:'UC',  label:'UC（アンコモン）'},
+  {v:'R',   label:'R（レア）'},
+  {v:'SR',  label:'SR（スーパーレア）'},
+  {v:'SEC', label:'SEC（シークレット）'},
+  {v:'SP',  label:'SP（スペシャル）'},
+  {v:'TR',  label:'TR（トレジャー）'},
+  {v:'P',   label:'P（プロモ）'}
+];
+// カタログの英語レアリティ → 日本語コードの初期変換
+const TAK_EN2JP = {'Leader':'L','L':'L','Common':'C','C':'C','Uncommon':'UC','UC':'UC','Rare':'R','R':'R','Super Rare':'SR','SR':'SR','Secret Rare':'SEC','SEC':'SEC','Special Card':'SP','Special':'SP','SP CARD':'SP','SP':'SP','Treasure Rare':'TR','TR':'TR','Promo':'P','PR':'P','P':'P','Unknown':''};
+const TAK_RARITY_RANK = {'SEC':1,'TR':2,'SP':3,'SR':4,'R':5,'UC':6,'C':7,'L':8,'P':9};
+function takRarityRank(r){ return TAK_RARITY_RANK[r] != null ? TAK_RARITY_RANK[r] : 900; }
+function takNormRarity(r){ return TAK_EN2JP.hasOwnProperty(r) ? TAK_EN2JP[r] : (r || ''); }
+function takRenderRarities(){
+  const sel = document.getElementById('tak-f-rarity');
+  if(!sel) return;
+  sel.innerHTML = TAK_RARITIES.map(o => `<option value="${o.v}">${o.label}</option>`).join('');
+}
+let takListEdited = false;  // 手動編集フラグ
+function takBuildList(force){
+  const box = document.getElementById('tak-list-text');
+  if(!box) return;
+  if(!force && takListEdited) return;  // 手動編集を上書きしない
+  const filled = takSlots.filter(s => s.name);
+  if(!filled.length){ if(!takListEdited || force){ box.value = ''; if(force) takListEdited = false; } return; }
+  const groups = {};
+  filled.forEach(s => {
+    const key = takNormRarity(s.r) || '未分類';
+    (groups[key] = groups[key] || []).push(s);
+  });
+  const keys = Object.keys(groups).sort((a,b) => {
+    const ra = a==='未分類' ? 1000 : takRarityRank(a);
+    const rb = b==='未分類' ? 1000 : takRarityRank(b);
+    return ra !== rb ? ra - rb : a.localeCompare(b);
+  });
+  const lines = [];
+  keys.forEach(k => {
+    lines.push(`【${k}】`);
+    groups[k].forEach(s => {
+      const price = s.amount ? '￥' + Number(s.amount).toLocaleString() : '未設定';
+      lines.push(`${s.name}　${price}`);
+    });
+    lines.push('');
+  });
+  box.value = lines.join('\n').trim();
+  if(force) takListEdited = false;
+}
+function takCopyList(){
+  const box = document.getElementById('tak-list-text');
+  if(!box || !box.value.trim()){ alert('登録済みカードがありません。'); return; }
+  const done = () => {
+    const b = document.getElementById('tak-copy-btn');
+    if(b){ const t = b.textContent; b.textContent = 'コピーしました'; setTimeout(() => b.textContent = t, 1500); }
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(box.value).then(done).catch(() => { box.select(); document.execCommand('copy'); done(); });
+  } else {
+    box.select(); document.execCommand('copy'); done();
+  }
+}
+// キャンバスをBlobとして保存（大きい画像でも確実にダウンロード）
+function takSaveCanvas(canvas, filename){
+  return new Promise(resolve => {
+    canvas.toBlob(blob => {
+      if(!blob){ alert('画像の生成に失敗しました。'); resolve(); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      resolve();
+    }, 'image/png');
+  });
+}
+
+// 画像（PNG）としてダウンロード
+async function takDownload(){
+  const el = document.getElementById('tak-banner-output');
+  if(!el) return;
+  if(typeof html2canvas === 'undefined'){
+    alert('画像化ライブラリを読み込めませんでした。通信環境をご確認のうえ再度お試しください。');
+    return;
+  }
+  let restore = [];
+  try{
+    restore = await takPrepareImages();
+    const canvas = await html2canvas(el, {useCORS:true, backgroundColor:takBg, scale:2});
+    await takSaveCanvas(canvas, 'kaitori_banner.png');
+  }catch(e){
+    alert('画像の書き出しに失敗しました。通信環境（カード画像の取得）をご確認のうえ再度お試しください。');
+  }finally{
+    takRestoreImages(restore);
+  }
+}
+
+// 指定した縦横比に整えて書き出し（元画像は中央にレターボックス配置）
+async function takDownloadRatio(rw, rh, label){
+  const el = document.getElementById('tak-banner-output');
+  if(!el) return;
+  if(typeof html2canvas === 'undefined'){
+    alert('画像化ライブラリを読み込めませんでした。通信環境をご確認のうえ再度お試しください。');
+    return;
+  }
+  let restore = [];
+  try{
+    restore = await takPrepareImages();
+    const src = await html2canvas(el, {useCORS:true, backgroundColor:takBg, scale:2});
+    const ratio = rw / rh;
+    // 元画像が必ず収まる最小の目標サイズを算出（contain）
+    let W = src.width, H = Math.round(W / ratio);
+    if(H < src.height){ H = src.height; W = Math.round(H * ratio); }
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = takBg;
+    ctx.fillRect(0, 0, W, H);
+    const scale = Math.min(W / src.width, H / src.height);
+    const dw = src.width * scale, dh = src.height * scale;
+    ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    await takSaveCanvas(c, `kaitori_banner_${label}.png`);
+  }catch(e){
+    alert('画像の書き出しに失敗しました。通信環境（カード画像の取得）をご確認のうえ再度お試しください。');
+  }finally{
+    takRestoreImages(restore);
+  }
+}
+
+// 背景画像のアップロード／解除
+function takBgUpload(e){
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => { takBgImage = ev.target.result; takApplyTheme(); };
+  reader.readAsDataURL(f);
+  e.target.value = '';
+}
+function takClearBgImage(){
+  takBgImage = null;
+  const inp = document.getElementById('tak-bg-file');
+  if(inp) inp.value = '';
+  takApplyTheme();
+}
+
+// 右上ロゴのアップロード／解除／反映
+let takLogo = null;
+async function takLogoUpload(e){
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  try{
+    takLogo = await takScaleImage(f, 320);
+    takApplyLogo();
+  }catch(err){
+    alert('ロゴ画像の読み込みに失敗しました。');
+  }
+  e.target.value = '';
+}
+function takClearLogo(){
+  takLogo = null;
+  const inp = document.getElementById('tak-logo-file');
+  if(inp) inp.value = '';
+  takApplyLogo();
+}
+function takApplyLogo(){
+  const img = document.getElementById('tak-out-logo');
+  if(!img) return;
+  if(takLogo){ img.src = takLogo; img.style.display = 'block'; }
+  else { img.removeAttribute('src'); img.style.display = 'none'; }
+}
+
+// 登録済みカードのサムネにホバーで拡大プレビュー
+function takZoomShow(src){
+  const z = document.getElementById('tak-zoom');
+  if(!z || !src) return;
+  z.querySelector('img').src = src;
+  z.style.display = 'block';
+}
+function takZoomMove(e){
+  const z = document.getElementById('tak-zoom');
+  if(!z || z.style.display === 'none') return;
+  const pad = 18, w = z.offsetWidth, h = z.offsetHeight;
+  let x = e.clientX + pad, y = e.clientY + pad;
+  if(x + w > window.innerWidth)  x = e.clientX - w - pad;
+  if(y + h > window.innerHeight) y = window.innerHeight - h - pad;
+  if(y < pad) y = pad;
+  z.style.left = x + 'px';
+  z.style.top  = y + 'px';
+}
+function takZoomHide(){
+  const z = document.getElementById('tak-zoom');
+  if(z) z.style.display = 'none';
+}
+
+function takRenderBgSwatches(){
+  const box = document.getElementById('tak-bg-swatches');
+  if(!box) return;
+  box.innerHTML = TAK_BG_COLORS.map(col => `
+    <div onclick="takSetBg('${col}')" title="${col}" style="
+      width:24px;height:24px;border-radius:5px;cursor:pointer;background:${col};
+      box-shadow:${takBg===col ? '0 0 0 2px var(--bg1),0 0 0 4px var(--accent)' : 'inset 0 0 0 1px rgba(128,128,128,0.35)'}"></div>`).join('');
+}
+
+function takSetBg(col){
+  takBg = col;
+  takApplyTheme();
+  takRenderBgSwatches();
+}
+
+function openTakatori(){
+  document.getElementById('takatori-overlay').style.display = 'block';
+  const rb = document.getElementById('tak-reopen-btn');
+  if(rb) rb.style.display = 'none';
+  takLoadCustom();
+  takLoadSets();
+  takRenderSets();
+  takRenderFonts();
+  takRenderRarities();
+  takInitDate();
+  takApplyLogo();
+  takRenderBgSwatches();
+  takApplyTheme();
+  takApplyFont();
+  takRenderSlots();
+  takRenderBanner();
+}
+function closeTakatori(){
+  document.getElementById('takatori-overlay').style.display = 'none';
+  const rb = document.getElementById('tak-reopen-btn');
+  if(rb) rb.style.display = 'block';
+}
+
+if(new URLSearchParams(location.search).get('admin') === '1') {
+  document.addEventListener('DOMContentLoaded', openTakatori);
+}
+
+function takRenderSlots(){
+  const list = document.getElementById('tak-slot-list');
+  if(!list) return;
+  if(!takSlots.length){
+    list.innerHTML = `<div style="text-align:center;color:var(--text2);font-size:12px;padding:16px 10px;border:1px dashed var(--border2);border-radius:6px">まだカードがありません。<br>「＋ カードを追加」または検索から追加してください。</div>`;
+    takBuildList();
+    return;
+  }
+  list.innerHTML = takSlots.map((s,i) => `
+    <div style="
+      display:flex;align-items:center;gap:8px;padding:7px 10px;
+      background:${takActive===i ? 'var(--bg3)' : 'var(--bg2)'};
+      border:1px solid ${takActive===i ? 'var(--accent)' : 'var(--border)'};
+      border-radius:6px;transition:border-color .12s">
+      <span style="font-size:10px;color:var(--text2);min-width:16px;text-align:center;font-weight:600">${i+1}</span>
+      <div onclick="takSelectSlot(${i})" ${s.img ? `onmouseenter="takZoomShow('${s.img}')" onmousemove="takZoomMove(event)" onmouseleave="takZoomHide()"` : ''} style="cursor:pointer;width:28px;height:38px;background:var(--bg1);border-radius:3px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+        ${s.img ? `<img src="${s.img}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">` : `<span style="font-size:10px;color:var(--text2)">—</span>`}
+      </div>
+      <div onclick="takSelectSlot(${i})" style="flex:1;min-width:0;cursor:pointer">
+        <div style="font-size:12px;font-weight:500;color:${s.name ? 'var(--text0)' : 'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name || '(未入力)'}</div>
+        <div style="font-size:10px;color:var(--text2)">${s.amount ? (s.currency || '¥') + Number(s.amount).toLocaleString() : '—'}</div>
+      </div>
+      <button onclick="takDeleteSlot(${i})" title="削除" style="flex-shrink:0;background:transparent;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1">×</button>
+    </div>`).join('');
+  takBuildList();
+}
+
+function takSelectSlot(i){
+  takActive = i;
+  const s = takSlots[i];
+  document.getElementById('tak-edit-form').style.display = 'block';
+  document.getElementById('tak-slot-label').textContent = i + 1;
+  document.getElementById('tak-f-name').value = s.name;
+  document.getElementById('tak-f-amount').value = s.amount || '';
+  const rsel = document.getElementById('tak-f-rarity');
+  if(rsel) rsel.value = takNormRarity(s.r);
+  takRenderSlots();
+}
+
+function takSaveSlot(){
+  if(takActive === null) return;
+  const currency = '¥';
+  const amount = parseInt(document.getElementById('tak-f-amount').value) || 0;
+  const name = document.getElementById('tak-f-name').value.trim();
+  const rsel = document.getElementById('tak-f-rarity');
+  const rarity = rsel ? rsel.value : (takSlots[takActive].r || '');
+  takSlots[takActive] = {...takSlots[takActive], name, currency, amount, r: rarity};
+  // DB由来でない（自作の）カードは候補として保存
+  const s = takSlots[takActive];
+  if(name && !s.setId){
+    takRegisterCustom({name, img: s.img || '', amount});
+  }
+  takRenderSlots();
+  takRenderBanner();
+}
+
+function takAddSlot(){
+  if(takSlots.length >= TAK_SLOTS){ alert('カードは最大' + TAK_SLOTS + '枚までです'); return; }
+  takSlots.push({name:'', img:'', currency:'¥', amount:0});
+  takActive = takSlots.length - 1;
+  takSelectSlot(takActive);
+}
+
+// アップロードした画像で新しいカード枠を作成
+async function takCardImageUpload(e){
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  if(takSlots.length >= TAK_SLOTS){ alert('カードは最大' + TAK_SLOTS + '枚までです'); e.target.value=''; return; }
+  try{
+    const img = await takScaleImage(f, 500);
+    takSlots.push({name:'', img, currency:'¥', amount:0});
+    takActive = takSlots.length - 1;
+    takSelectSlot(takActive);
+    takRenderBanner();
+  }catch(err){
+    alert('画像の読み込みに失敗しました。');
+  }
+  e.target.value = '';
+}
+
+function takDeleteSlot(i){
+  if(i === null || i === undefined) return;
+  takSlots.splice(i, 1);
+  if(takActive === i){
+    takActive = null;
+    document.getElementById('tak-edit-form').style.display = 'none';
+  } else if(takActive !== null && takActive > i){
+    takActive--;
+  }
+  takRenderSlots();
+  takRenderBanner();
+}
+
+// 日本語対応の正規化（全角半角・ひらがな/カタカナ・空白/中黒の揺れを吸収）
+function takNorm(s){
+  if(!s) return '';
+  let t = String(s).normalize('NFKC').toLowerCase().replace(/[\s・]+/g,'');
+  // ひらがな → カタカナ に寄せる（ぴかちゅう でも ピカチュウ にヒット）
+  t = t.replace(/[\u3041-\u3096]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
+  return t;
+}
+
+function takSearchCards(){
+  const q = document.getElementById('tak-search').value.trim();
+  const res = document.getElementById('tak-search-results');
+  if(q.length < 2){ res.style.display='none'; return; }
+  const nq = takNorm(q);
+
+  // 保存済みのカスタム候補（先頭に表示）
+  const custom = [];
+  takCustom.forEach((c, ci) => {
+    if(takNorm(c.name).includes(nq)){ custom.push({ci, name:c.name, img:c.img, amount:c.amount}); }
+  });
+
+  const hits = [];
+  for(const [setId, cards] of Object.entries(CARDS)){
+    for(const c of cards){
+      if(takNorm(c.en).includes(nq) || takNorm(c.jp).includes(nq)){
+        hits.push({...c, setId});
+        if(hits.length >= 20) break;
+      }
+    }
+    if(hits.length >= 20) break;
+  }
+
+  if(!custom.length && !hits.length){ res.style.display='none'; return; }
+  res.style.display = 'block';
+
+  const customHtml = custom.map(c => `
+    <div onclick="takAssignCustom(${c.ci})"
+      style="display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:14px;background:rgba(255,215,0,0.06)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='rgba(255,215,0,0.06)'">
+      <div style="width:48px;height:66px;flex-shrink:0;background:var(--bg1);border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+        ${c.img ? `<img src="${c.img}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">` : `<span style="font-size:11px;color:var(--text2)">—</span>`}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;color:var(--text0)">${c.name}</div>
+        <div style="color:var(--text2);font-size:11px;margin-top:2px">保存済み候補${c.amount ? '（¥'+Number(c.amount).toLocaleString()+'）' : ''}</div>
+      </div>
+      <button onclick="event.stopPropagation();takRemoveCustom(${c.ci})" title="候補から削除" style="flex-shrink:0;background:transparent;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1">×</button>
+    </div>`).join('');
+
+  const dbHtml = hits.map(c => {
+    const enSafe = c.en.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const jpSafe = c.jp.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const thumb = takImgUrl(c.setId, c.n);
+    return `<div onclick="takAssignCard('${c.setId}','${c.n}','${enSafe}','${jpSafe}','${c.r}')"
+      style="display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:14px"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <div style="width:48px;height:66px;flex-shrink:0;background:var(--bg1);border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+        <img src="${thumb}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;color:var(--text0)">${c.jp}</div>
+        <div style="color:var(--text2);font-size:12px;margin-top:2px">${c.en}</div>
+      </div>
+      <span style="flex-shrink:0;font-size:11px;color:var(--text2)">${c.setId} #${c.n}</span>
+    </div>`;
+  }).join('');
+
+  res.innerHTML = customHtml + dbHtml;
+}
+
+// 保存済みカスタム候補をスロットに割り当て
+function takAssignCustom(ci){
+  const c = takCustom[ci];
+  if(!c) return;
+  if(takActive !== null && takSlots[takActive] && !takSlots[takActive].name && !takSlots[takActive].amount){
+    takSlots[takActive] = {...takSlots[takActive], name:c.name, img:c.img||'', amount:c.amount||0, currency:'¥'};
+  } else {
+    if(takSlots.length >= TAK_SLOTS){ alert('カードは最大' + TAK_SLOTS + '枚までです'); return; }
+    takSlots.push({name:c.name, img:c.img||'', amount:c.amount||0, currency:'¥'});
+    takActive = takSlots.length - 1;
+  }
+  document.getElementById('tak-search').value = '';
+  document.getElementById('tak-search-results').style.display = 'none';
+  takSelectSlot(takActive);
+  takRenderBanner();
+}
+
+function takAssignCard(setId, n, en, jp, r){
+  const img = takImgUrl(setId, n);
+  const jpR = takNormRarity(r);  // 英語レアリティ→日本語コードに変換して初期値に
+  // 選択中スロットが空なら上書き、それ以外は新しい枠として追加（カード名は日本語）
+  if(takActive !== null && takSlots[takActive] && !takSlots[takActive].name && !takSlots[takActive].amount){
+    takSlots[takActive] = {...takSlots[takActive], name: jp, img, setId, n, r: jpR};
+  } else {
+    if(takSlots.length >= TAK_SLOTS){ alert('カードは最大' + TAK_SLOTS + '枚までです'); return; }
+    takSlots.push({name: jp, img, setId, n, r: jpR, currency:'¥', amount:0});
+    takActive = takSlots.length - 1;
+  }
+  document.getElementById('tak-search').value = '';
+  document.getElementById('tak-search-results').style.display = 'none';
+  takSelectSlot(takActive);   // 編集フォームを開いて価格入力へ
+  takRenderBanner();
+}
+
+function takRenderBanner(){
+  const grid = document.getElementById('tak-banner-grid');
+  if(!grid) return;
+  const sub = document.getElementById('tak-sub')?.value || '';
+  const footer = document.getElementById('tak-footer')?.value || '';
+  const caption = document.getElementById('tak-caption')?.value || '';
+  document.getElementById('tak-out-sub').textContent = sub;
+  document.getElementById('tak-out-footer').textContent = footer;
+
+  // 埋まっているスロットだけを対象にする（空き枠はバナーに出さない）
+  const filled = takSlots.filter(s => s.name || s.amount);
+
+  // 枚数に応じて列数を自動調整（〜9枚=3列, 〜16枚=4列, 〜20枚=5列）
+  const cols = filled.length <= 9 ? 3 : filled.length <= 16 ? 4 : 5;
+  grid.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+
+  grid.innerHTML = filled.map(s => `
+    <div style="background:#ffffff;border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid #e3e3ea">
+      <div style="width:100%;aspect-ratio:2/3;background:#eef0f3;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+        ${s.img
+          ? `<img src="${s.img}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='<span style=font-size:20px;color:#b6bac6>？</span>'">`
+          : `<span style="font-size:20px;color:#b6bac6">＋</span>`}
+      </div>
+      <div style="font-size:16px;font-weight:700;color:#1f2430;text-align:center;line-height:1.25;min-height:40px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px">${s.name || '—'}${s.setId ? `<span style="font-size:11px;font-weight:400;color:#1f2430">/${s.setId}/${s.n}</span>` : ''}</div>
+      <div style="background:${s.amount ? '#FFD700' : 'rgba(255,215,0,0.3)'};color:${s.amount ? '#1a1a2e' : '#999'};font-size:14px;font-weight:800;padding:3px 12px;border-radius:20px;white-space:nowrap">
+        ${s.amount ? (s.currency || '¥') + Number(s.amount).toLocaleString() : '未設定'}
+      </div>
+    </div>`).join('') || `<div style="grid-column:1/-1;text-align:center;color:#9aa;font-size:12px;padding:20px 0">カードを追加してください</div>`;
+
+  // 枠外の注釈・キャプション（入力があるときだけ表示）
+  const capEl = document.getElementById('tak-out-caption');
+  if(capEl){
+    capEl.textContent = caption;
+    capEl.style.display = caption.trim() ? 'block' : 'none';
+  }
+
+  // 背景の明暗に応じた配色・フォント・縦横比を反映
+  takApplyTheme();
+  takApplyFont();
+  takUpdateRatio();
+}
+</script>
+<!-- ==================== 編集モード ここまで ==================== -->
 <body>
 
 <div class="app">
