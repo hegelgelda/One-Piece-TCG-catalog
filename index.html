@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rye&family=Sancreek&display=swap" rel="stylesheet">
-<title>One Piece TCG Wholesale Catalog — Torelis</title>
+<title>ワンピースカード 卸カタログ｜トレリス</title>
 <style>
 :root{
   --bg0:#0a0e14;--bg1:#10151d;--bg2:#161d27;--bg3:#1d2530;
@@ -143,7 +143,7 @@ button,input,select{font-family:inherit;font-size:inherit}
   <div class="sidebar">
     <div class="brand">
       <div class="brand-mark">Torelis</div>
-      <div class="brand-sub">One Piece TCG — JP Wholesale</div>
+      <div class="brand-sub">ワンピースカード 卸売</div>
     </div>
     <div class="sidebar-scroll" id="sidebar-sets"></div>
   </div>
@@ -151,33 +151,33 @@ button,input,select{font-family:inherit;font-size:inherit}
   <!-- ── Main ── -->
   <div class="main">
     <div class="main-header">
-      <h2 id="main-title">One Piece TCG Wholesale Catalog</h2>
-      <p id="main-sub">Select a set from the sidebar, or search all 3048 cards across 43 sets.</p>
+      <h2 id="main-title">ワンピースカード 卸カタログ</h2>
+      <p id="main-sub">左のセットを選ぶか、全578枚（41セット）から検索できます。</p>
     </div>
     <div class="toolbar">
       <div class="search-wrap">
-        <input type="text" id="search" placeholder="🔍  Search cards — name or card number…" oninput="onSearch()">
+        <input type="text" id="search" placeholder="🔍  カード名（カタカナ）または型番で検索…" oninput="onSearch()">
       </div>
       <div class="chip-group" id="color-filters"></div>
       <div class="chip-group" id="type-filters"></div>
       <div class="chip-group" id="rarity-filters"></div>
     </div>
     <div class="card-scroll">
-      <div id="content"><div class="empty-state">Choose a set from the sidebar, or use search above.</div></div>
+      <div id="content"><div class="empty-state">左のセットを選ぶか、上の検索欄にカード名・型番を入力してください。</div></div>
     </div>
   </div>
 
   <!-- ── Order Panel ── -->
   <div class="cart">
     <div class="cart-header">
-      <h3>Order <span id="cart-count" style="font-size:11px;color:var(--text2);font-weight:400"></span></h3>
-      <label class="field-label">Buyer name</label>
-      <input class="buyer-input" id="buyer-name" placeholder="Name">
-      <label class="field-label">Company</label>
-      <input class="buyer-input" id="buyer-company" placeholder="Shop / Company">
-      <label class="field-label">Email</label>
+      <h3>注文 <span id="cart-count" style="font-size:11px;color:var(--text2);font-weight:400"></span></h3>
+      <label class="field-label">お名前</label>
+      <input class="buyer-input" id="buyer-name" placeholder="山田 太郎">
+      <label class="field-label">店舗名・会社名</label>
+      <input class="buyer-input" id="buyer-company" placeholder="〇〇カードショップ">
+      <label class="field-label">メールアドレス</label>
       <input class="buyer-input" id="buyer-email" type="email" placeholder="email@example.com">
-      <label class="field-label">Currency</label>
+      <label class="field-label">通貨</label>
       <select class="currency-sel" id="currency" onchange="renderCart()">
         <option value="USD">USD</option>
         <option value="JPY">JPY</option>
@@ -186,19 +186,19 @@ button,input,select{font-family:inherit;font-size:inherit}
         <option value="PHP">PHP</option>
       </select>
     </div>
-    <div class="cart-items" id="cart-items"><div class="cart-empty">No items yet.</div></div>
+    <div class="cart-items" id="cart-items"><div class="cart-empty">まだ商品がありません。</div></div>
     <div class="cart-footer">
       <div id="cart-summary"></div>
-      <button class="submit-btn" id="submit-btn" onclick="submitOrder()" disabled>Submit Order</button>
+      <button class="submit-btn" id="submit-btn" onclick="submitOrder()" disabled>注文を送信</button>
     </div>
   </div>
 </div>
 
 <div class="modal-overlay" id="modal">
   <div class="modal">
-    <h2 id="modal-title">✓ Order Submitted</h2>
-    <p id="modal-body">Your order has been received. We will contact you shortly.</p>
-    <button class="modal-close" onclick="closeModal()">Close</button>
+    <h2 id="modal-title">✓ 注文を受け付けました</h2>
+    <p id="modal-body">ご注文を受け付けました。追ってご連絡いたします。</p>
+    <button class="modal-close" onclick="closeModal()">閉じる</button>
   </div>
 </div>
 
@@ -232,6 +232,144 @@ function cardImg(c, setId, attrs){
        + ` referrerpolicy="no-referrer" onerror="${imgFallbackAttr(setId, c.n)}" ${attrs||''}>`;
 }
 
+// ── カード名（日本語） ──
+// 表記を直したい場合はここを編集してください。
+const CARD_NAME_JP = {
+"Adio": "アディオ",
+"Aramaki": "アラマキ",
+"Arlong": "アーロン",
+"Bartholomew Kuma": "バーソロミュー・くま",
+"Basil Hawkins": "バジル・ホーキンス",
+"Benn.Beckman": "ベン・ベックマン",
+"Black Maria": "ブラックマリア",
+"Boa Hancock": "ボア・ハンコック",
+"Borsalino": "ボルサリーノ",
+"Brook": "ブルック",
+"Buggy": "バギー",
+"Capone\"Gang\"Bege": "カポネ“ギャング”ベッジ",
+"Carrot": "キャロット",
+"Cavendish": "キャベンディッシュ",
+"Charlotte Cracker": "シャーロット・クラッカー",
+"Charlotte Flampe": "シャーロット・フランペ",
+"Charlotte Katakuri": "シャーロット・カタクリ",
+"Charlotte Linlin": "シャーロット・リンリン",
+"Charlotte Perospero": "シャーロット・ペロスペロー",
+"Charlotte Pudding": "シャーロット・プリン",
+"Crocodile": "クロコダイル",
+"Crocodile & Mihawk": "クロコダイル＆ミホーク",
+"Donquixote Doflamingo": "ドンキホーテ・ドフラミンゴ",
+"Donquixote Rosinante": "ドンキホーテ・ロシナンテ",
+"Douglas Bullet": "ダグラス・バレット",
+"Dracule Mihawk": "ジュラキュール・ミホーク",
+"Edward.Newgate": "エドワード・ニューゲート",
+"Emporio.Ivankov": "エンポリオ・イワンコフ",
+"Enel": "エネル",
+"Eustass\"Captain\"Kid": "ユースタス“キャプテン”キッド",
+"Franky": "フランキー",
+"Gecko Moria": "ゲッコー・モリア",
+"Gol.D.Roger": "ゴール・D・ロジャー",
+"Helmeppo": "ヘルメッポ",
+"Hibari": "ヒバリ",
+"Hina": "ヒナ",
+"Hody Jones": "ホーディ・ジョーンズ",
+"Inazuma": "イナズマ",
+"Issho": "イッショウ",
+"Izo": "イゾウ",
+"Jack": "ジャック",
+"Jewelry Bonney": "ジュエリー・ボニー",
+"Jinbe": "ジンベエ",
+"Kaido": "カイドウ",
+"Kaido & Linlin": "カイドウ＆リンリン",
+"Kaku": "カク",
+"Kid & Killer": "キッド＆キラー",
+"Kin'emon": "錦えもん",
+"King": "キング",
+"Koala": "コアラ",
+"Koby": "コビー",
+"Kouzuki Hiyori": "光月日和",
+"Kouzuki Momonosuke": "光月モモの助",
+"Kouzuki Oden": "光月おでん",
+"Krieg": "クリーク",
+"Kujyaku": "クジャク",
+"Kuzan": "クザン",
+"Kyros": "キュロス",
+"Laboon": "ラブーン",
+"Law & Bepo": "ロー＆ベポ",
+"Lilith": "リリス",
+"Lim": "リム",
+"Lucky.Roux": "ラッキー・ルウ",
+"Luffy-Tarou": "ルフィ太郎",
+"Magellan": "マゼラン",
+"Marco": "マルコ",
+"Marshall.D.Teach": "マーシャル・D・ティーチ",
+"Monet": "モネ",
+"Monkey.D.Dragon": "モンキー・D・ドラゴン",
+"Monkey.D.Garp": "モンキー・D・ガープ",
+"Monkey.D.Luffy": "モンキー・D・ルフィ",
+"Mr.2.Bon.Kurei(Bentham)": "Mr.2・ボン・クレー(ボンちゃん)",
+"Ms. All Sunday": "ミス・オールサンデー",
+"Ms. Wednesday": "ミス・ウェンズデー",
+"Nami": "ナミ",
+"Nefeltari Vivi": "ネフェルタリ・ビビ",
+"New Genesis": "新時代",
+"Nico Robin": "ニコ・ロビン",
+"O-Nami": "おナミ",
+"Okiku": "お菊",
+"Paulie": "パウリー",
+"Pell": "ペル",
+"Perona": "ペローナ",
+"Pica": "ピーカ",
+"Porche": "ポルチェ",
+"Portgas.D.Ace": "ポートガス・D・エース",
+"Queen": "クイーン",
+"Rebecca": "レベッカ",
+"Rob Lucci": "ロブ・ルッチ",
+"Roronoa Zoro": "ロロノア・ゾロ",
+"S-Snake": "S-スネーク",
+"Sabo": "サボ",
+"Sakazuki": "サカズキ",
+"Sanji": "サンジ",
+"Sanji & Pudding": "サンジ＆プリン",
+"Sengoku": "センゴク",
+"Shanks": "シャンクス",
+"Shirahoshi": "しらほし",
+"Shuraiya": "シュライヤ",
+"Silvers Rayleigh": "シルバーズ・レイリー",
+"Smoker": "スモーカー",
+"Sogeking": "そげキング",
+"Stussy": "ステューシー",
+"Sugar": "シュガー",
+"Tashigi": "たしぎ",
+"Tony Tony.Chopper": "トニートニー・チョッパー",
+"Trafalgar Law": "トラファルガー・ロー",
+"Ulti": "うるティ",
+"Urouge": "ウルージ",
+"Uso-Hachi": "ウソハチ",
+"Usopp": "ウソップ",
+"Uta": "ウタ",
+"Vegapunk": "ベガパンク",
+"Vinsmoke Judge": "ヴィンスモーク・ジャッジ",
+"Vinsmoke Reiju": "ヴィンスモーク・レイジュ",
+"Vinsmoke Sanji": "ヴィンスモーク・サンジ",
+"Viola": "ヴィオラ",
+"Yamato": "ヤマト",
+"Yasopp": "ヤソップ",
+"Zoro-Juurou": "ゾロ十郎"
+};
+function jpName(c){ return CARD_NAME_JP[c.name] || c.name; }
+
+// 検索用の正規化（全角半角・ひらがな→カタカナ・記号除去）
+function normJa(s){
+  if(!s) return '';
+  let t = String(s).normalize('NFKC').toLowerCase().replace(/[\s・･、。＆&]+/g,'');
+  return t.replace(/[\u3041-\u3096]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
+}
+// 型番用の正規化（OP01-024 / op01 024 / OP01#024 の表記揺れを吸収）
+function normNo(s){ return String(s||'').normalize('NFKC').toUpperCase().replace(/[\s\-#・_]+/g,''); }
+
+const COLOR_JP = {Red:'赤',Green:'緑',Blue:'青',Purple:'紫',Black:'黒',Yellow:'黄'};
+const TYPE_JP  = {LEADER:'リーダー',CHARACTER:'キャラクター',EVENT:'イベント',STAGE:'ステージ'};
+
 // ── Config (edit freely — not overwritten by the build script) ──
 const FX      = {"USD": 1, "JPY": 153, "SGD": 1.35, "HKD": 7.82, "PHP": 57};
 const DP      = {"C": 0.3, "UC": 0.5, "R": 1.5, "SR": 6, "SEC": 25, "L": 1, "TR": 3, "P": 2, "SP CARD": 15};
@@ -242,6 +380,7 @@ const COLOR_HEX = {Red:"var(--red)",Green:"var(--green)",Blue:"var(--blue)",Purp
 const BASE_COLORS = ["Red","Green","Blue","Purple","Black","Yellow"];
 const TYPES = ["LEADER","CHARACTER","EVENT","STAGE"];
 
+const TOTAL_LABEL = '左のセットを選ぶか、全578枚（41セット）から検索できます。';
 let currentSet = null, cart = {}, searchQ = '';
 let activeColors = new Set(), activeTypes = new Set(), activeRarities = new Set();
 let cardPrices = {};
@@ -315,7 +454,7 @@ function selectSet(id){
   const meta = findSetMeta(id);
   document.getElementById('main-title').textContent = `${id} — ${meta.name}`;
   document.getElementById('main-sub').textContent =
-    `${meta.count} cards in this set.` + (meta.name_en ? `  (${meta.name_en})` : '');
+    `このセットに ${meta.count}枚` + (meta.name_en ? `　（${meta.name_en}）` : '');
   renderFilters(meta);
   renderCards();
 }
@@ -326,20 +465,20 @@ function renderFilters(meta){
   const usedColors = new Set();
   colors.forEach(c => c.split('/').forEach(x=>usedColors.add(x)));
   document.getElementById('color-filters').innerHTML =
-    `<span class="glabel">Color</span>` +
+    `<span class="glabel">色</span>` +
     [...usedColors].sort().map(c=>`
       <span class="chip color-chip" data-color="${c}" onclick="toggleFilter('color','${c}')">
-        <span class="color-dot" style="background:${COLOR_HEX[c]||'#888'}"></span>${c}
+        <span class="color-dot" style="background:${COLOR_HEX[c]||'#888'}"></span>${COLOR_JP[c]||c}
       </span>`).join('');
 
   const types = meta.types && meta.types.length ? meta.types : TYPES;
   document.getElementById('type-filters').innerHTML =
-    `<span class="glabel">Type</span>` +
-    types.map(t=>`<span class="chip" data-type="${t}" onclick="toggleFilter('type','${t}')">${t}</span>`).join('');
+    `<span class="glabel">種類</span>` +
+    types.map(t=>`<span class="chip" data-type="${t}" onclick="toggleFilter('type','${t}')">${TYPE_JP[t]||t}</span>`).join('');
 
   const rarities = meta.rarities && meta.rarities.length ? meta.rarities : RARITY_ORDER;
   document.getElementById('rarity-filters').innerHTML =
-    `<span class="glabel">Rarity</span>` +
+    `<span class="glabel">レアリティ</span>` +
     rarities.map(r=>`<span class="chip" data-rarity="${r}" onclick="toggleFilter('rarity','${r}')">${r}</span>`).join('');
 }
 function toggleFilter(kind, val){
@@ -368,17 +507,17 @@ function cardTile(c, setId){
     <div class="card-tile ${isRare?'rare':''}">
       <div class="color-stripe" style="background:${COLOR_HEX[colorStripe]||'var(--border2)'}"></div>
       <div class="thumb">
-        ${cardImg(c, setId, `alt="${escapeHtml(c.name)}"`)}
+        ${cardImg(c, setId, `alt="${escapeHtml(jpName(c))}"`)}
       </div>
       <div class="card-meta">
         <div class="card-num">${setId}-${c.n}${c.p?' ★':''}</div>
-        <div class="card-name">${escapeHtml(c.name)}</div>
+        <div class="card-name">${escapeHtml(jpName(c))}</div>
         <div class="badge-row">
           <span class="rarity-badge ${rClass}">${c.r||'—'}</span>
           <span class="stat-row">${c.cost!=null?`⚡${c.cost}`:''} ${c.power!=null?`⚔${c.power}`:''}</span>
         </div>
         <div class="price-line" style="margin-top:6px;font-size:12px;color:var(--gold);font-weight:600">${tagText}</div>
-        <button class="add-btn" onclick="addToCart('${key}', ${JSON.stringify(c.name)}, '${setId}-${c.n}', '${c.r}', ${price})">Add</button>
+        <button class="add-btn" title="注文に追加" onclick="addToCart('${key}', ${JSON.stringify(jpName(c))}, '${setId}-${c.n}', '${c.r}', ${price})">追加</button>
       </div>
     </div>`;
 }
@@ -388,7 +527,7 @@ function renderCards(){
   const rf = activeRarities;
   const cards = (CARDS[currentSet]||[]).filter(passesFilters);
   if(!cards.length){
-    document.getElementById('content').innerHTML = '<div class="empty-state">No cards match the current filters.</div>';
+    document.getElementById('content').innerHTML = '<div class="empty-state">条件に合うカードがありません。</div>';
     return;
   }
   document.getElementById('content').innerHTML =
@@ -396,13 +535,13 @@ function renderCards(){
 }
 
 function onSearch(){
-  searchQ = document.getElementById('search').value.trim().toLowerCase();
+  searchQ = document.getElementById('search').value.trim();
   currentSet = null;
   document.querySelectorAll('.set-btn').forEach(b=>b.classList.remove('active'));
   if(!searchQ){
-    document.getElementById('main-title').textContent = 'One Piece TCG Wholesale Catalog';
-    document.getElementById('main-sub').textContent = `Select a set from the sidebar, or search all 3048 cards across 43 sets.`;
-    document.getElementById('content').innerHTML = '<div class="empty-state">Choose a set from the sidebar, or use search above.</div>';
+    document.getElementById('main-title').textContent = 'ワンピースカード 卸カタログ';
+    document.getElementById('main-sub').textContent = TOTAL_LABEL;
+    document.getElementById('content').innerHTML = '<div class="empty-state">左のセットを選ぶか、上の検索欄にカード名・型番を入力してください。</div>';
     renderFilters({});
     return;
   }
@@ -410,22 +549,23 @@ function onSearch(){
   renderSearch();
 }
 function renderSearch(){
-  const q = searchQ;
+  const nq = normJa(searchQ), nqNo = normNo(searchQ);
   const results = [];
   for(const [setId, cards] of Object.entries(CARDS)){
     for(const c of cards){
       if(!passesFilters(c)) continue;
-      if(c.name.toLowerCase().includes(q) || `${setId}-${c.n}`.toLowerCase().includes(q)){
-        results.push({...c, setId});
-      }
+      const nameHit = nq.length >= 1 && normJa(jpName(c)).includes(nq);
+      const noKey   = normNo(setId + c.n);
+      const noHit   = nqNo.length >= 2 && (noKey.includes(nqNo) || normNo(c.n) === nqNo);
+      if(nameHit || noHit) results.push({...c, setId});
     }
   }
-  document.getElementById('main-title').textContent = `Search: "${searchQ}"`;
-  document.getElementById('main-sub').textContent = `${results.length} matching cards.`;
+  document.getElementById('main-title').textContent = `検索：「${escapeHtml(searchQ)}」`;
+  document.getElementById('main-sub').textContent = `${results.length}枚 該当しました。`;
   const shown = results.slice(0, 200);
   document.getElementById('content').innerHTML = shown.length
     ? `<div class="card-grid">${shown.map(c=>cardTile(c, c.setId)).join('')}</div>`
-    : '<div class="empty-state">No matching cards.</div>';
+    : '<div class="empty-state">該当するカードがありません。カード名（カタカナ）か型番でお試しください。</div>';
 }
 
 // ── Cart ──
@@ -446,7 +586,7 @@ function renderCart(){
   document.getElementById('cart-count').textContent = count ? `(${count})` : '';
   const sym = getSym();
   if(!keys.length){
-    document.getElementById('cart-items').innerHTML = '<div class="cart-empty">No items yet.</div>';
+    document.getElementById('cart-items').innerHTML = '<div class="cart-empty">まだ商品がありません。</div>';
     document.getElementById('cart-summary').innerHTML = '';
     document.getElementById('submit-btn').disabled = true;
     return;
@@ -456,7 +596,7 @@ function renderCart(){
     return `<div class="cart-item">
       <div>
         <div class="ci-name">${escapeHtml(it.name)}</div>
-        <div class="ci-sub">${it.num} · ${it.rarity} · ${sym}${conv(it.price)} each</div>
+        <div class="ci-sub">${it.num}　${it.rarity}　単価 ${sym}${conv(it.price)}</div>
       </div>
       <div class="ci-controls">
         <button class="qty-btn" onclick="changeQty('${k}',-1)">−</button>
@@ -468,7 +608,7 @@ function renderCart(){
   const sub = keys.reduce((s,k)=>s+cart[k].price*cart[k].qty, 0);
   document.getElementById('cart-summary').innerHTML =
     `<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:8px">
-       <span>Subtotal</span><span>${sym}${conv(sub)}</span></div>`;
+       <span>小計</span><span>${sym}${conv(sub)}</span></div>`;
   document.getElementById('submit-btn').disabled = false;
 }
 
@@ -479,11 +619,11 @@ async function submitOrder(){
   const cur     = document.getElementById('currency').value;
   const keys    = Object.keys(cart);
   if(!buyer || !email || !keys.length){
-    alert('Please fill in your name, email, and add at least one card.');
+    alert('お名前・メールアドレスを入力し、カードを1枚以上追加してください。');
     return;
   }
   const btn = document.getElementById('submit-btn');
-  btn.disabled = true; btn.textContent = 'Submitting…';
+  btn.disabled = true; btn.textContent = '送信中…';
   const totalUSD = keys.reduce((s,k)=>s+cart[k].price*cart[k].qty, 0);
   const items = keys.map(k=>({
     key:k, name:cart[k].name, num:cart[k].num, rarity:cart[k].rarity,
@@ -498,14 +638,14 @@ async function submitOrder(){
         body: JSON.stringify(payload)
       });
     }
-    document.getElementById('modal-title').textContent = '✓ Order Submitted';
-    document.getElementById('modal-body').textContent = 'Your order has been received. We will contact you shortly.';
+    document.getElementById('modal-title').textContent = '✓ 注文を受け付けました';
+    document.getElementById('modal-body').textContent = 'ご注文を受け付けました。追ってご連絡いたします。';
     document.getElementById('modal').classList.add('open');
     cart = {}; renderCart();
   }catch(e){
-    alert('Something went wrong submitting your order. Please try again or contact us directly.');
+    alert('送信に失敗しました。時間をおいて再度お試しいただくか、直接ご連絡ください。');
   }finally{
-    btn.disabled = false; btn.textContent = 'Submit Order';
+    btn.disabled = false; btn.textContent = '注文を送信';
   }
 }
 function closeModal(){ document.getElementById('modal').classList.remove('open'); }
@@ -558,7 +698,7 @@ renderCart();
         <div style="font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text2);text-transform:uppercase;margin-bottom:12px">カードスロット（最大20枚）</div>
 
         <!-- 検索 -->
-        <input type="text" id="tak-search" placeholder="カード名・型番で検索（例: SV1a-001）..." oninput="takSearchCards()"
+        <input type="text" id="tak-search" placeholder="カード名（カタカナ）・型番で検索（例: OP01-024）..." oninput="takSearchCards()"
           style="width:100%;padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text0);font-size:12px;outline:none;margin-bottom:10px">
         <div id="tak-search-results" style="max-height:60vh;overflow-y:auto;margin-bottom:14px;display:none;background:var(--bg2);border:1px solid var(--border);border-radius:6px"></div>
 
@@ -1652,8 +1792,9 @@ function takSearchCards(){
   const hits = [];
   for(const [setId, cards] of Object.entries(CARDS)){
     for(const c of cards){
-      const cEn = c.en || c.name || '', cJp = c.jp || c.name || '';
-      const nameHit = takNorm(cEn).includes(nq) || takNorm(cJp).includes(nq);
+      const cJp = c.jp || (typeof jpName === 'function' ? jpName(c) : c.name) || '';
+      const cEn = c.en || c.name || '';
+      const nameHit = takNorm(cJp).includes(nq);   // 検索は日本語名のみ
       // 型番一致：「SV1A001」「001」「SV1A」など。番号のみ・セットIDのみでもヒット
       const noKey = takNormNo(setId + c.n);
       const noHit = nqNo.length >= 2 && (noKey.includes(nqNo) || takNormNo(c.n) === nqNo);
